@@ -1,26 +1,30 @@
 #include <iostream>
+#include <cmath>
 #include "lasso.h"
 
 uint mult( uint, uint );
 uint badMult( uint, uint );
-uint fib( uint );
-uint fact( uint );
+uint remainder( uint, uint );
+uint powersOfTwo( uint );
 
+void procedural_test();
 void mult_test();
-void fib_test();
-void fact_test();
+void remainder_test();
+void powersOfTwo_test();
+void remainder_test();
 
 int main()
 {
 	// PART I
 	// Use Expect( "description", expected result, expression to evaluate )
+	::section( "Part I & 2: Expect()" );
 
 	// 1) Simple example of an Expect() call
 	// This is so, so not much happens.
 	Expect( "a) four is 2 plus 2", 4, 2 + 2 );
 
 	// It isn't so, so a failure will appear in std::cout
-	Expect( "b) five is 2 plus 2", 5, 2 + 2 );
+	Expect( "b) five is 2 plus 2", 5, 2 + 2 ); // My dog's name is Helmut. Helmut Smooches.
 
 	// 2) What's useful: Function calls in Expect()
 	// The expression to evaluate is a function call
@@ -28,7 +32,7 @@ int main()
 
 	// Will generate console output.
 	//There is a problem with this 'badMult' function!
-	Expect( "d) four is 2 times 2", 4, badMult( 2, 2 ));
+	Expect( "d) four is 2 times 2", 4, badMult( 2, 2 )); // llama
 
 	// Will *not* generate console output.
 	// Broken functions can, of course, pass some (even many) test cases
@@ -36,7 +40,7 @@ int main()
 
 	// Will generate console output.
 	// It should never be forgotten that occasionally the test case is wrong!
-	Expect( "f) five is 2 times 2", 5, mult( 2, 2 ));
+	Expect( "f) five is 2 times 2", 5, mult( 2, 2 )); // alpaca
 
 	// PART II
 	// Use a table to run multiple cases through Expect()
@@ -75,6 +79,7 @@ int main()
 
 	// PART III
 	//Use lasso<> to build an object that runs a test routine
+	::section( "Part III and up: lasso<>" );
 
 	// 1: Construct a lasso<> object
 	// important: A test routine here should be a function with signature:
@@ -91,9 +96,10 @@ int main()
 
 	// Step 1: Build an array of lasso<> objects
 	lasso<> tests[] = {
+		{ "procedural example", &procedural_test },
 		{ "multiply (recursive)", &mult_test },
-		{ "fibonacci (recursive)", &fib_test },
-		{ "factorial (recursive)", &fact_test },
+		{ "remainder()", &remainder_test },
+		{ "powers of two", &powersOfTwo_test },
 	};
 
 	// Step 2: Run the tests
@@ -109,32 +115,44 @@ int main()
 
 	// (ADVANCED USAGE)
 	// V: lassoing directly from functions
+	// Only useful in very specific cases, but the syntax is so tricky it's worth a visit ...
+	// TODO: Figure out if Google does it better (they probably do it better)
 
 	// 1) The ugly way: work out the pointer signature in the lasso<> constructor
-	lasso< uint ( * )( uint ), uint > fibber( "fibber", &fib );
-
-	fibber.Run( 35 );
-	std::cout << fibber.TerminalString();
+	lasso< uint ( * )( uint ), uint > powTwo( "powTwo", &powersOfTwo );
 
 	// 2) The saner way: work out the pointer signature and assign to a symbol with 'using'
 	using twoNumberFunc = uint ( * )( uint, uint );
 	lasso< twoNumberFunc, uint, uint > multer( "multer", &mult );
 
-	multer.Run( 3, 9 );
-	std::cout << multer.TerminalString();
-
 	// 3) Sane way made less sane and more fun with a lambda
-	auto fibplex = []( uint a, uint b ){
-		return fib( a ) - fib( b );
+	auto remainderLambda = []( uint a, uint b ){
+		return remainder( a, b );
 	};
 
-	lasso< twoNumberFunc, uint, uint > fibplexer( "fibplex", fibplex );
+	lasso< twoNumberFunc, uint, uint > quirky( "remainder lambda", remainderLambda );
 
-	fibplexer.Run( 35, 34 );
-	std::cout << fibplexer.TerminalString();
-
-	// EXIT
+	::section( "~fin~" );
 	return 0;
+}
+
+// Demonstrates a step-by-step sort of testing routine
+// This happens fairly often
+void procedural_test() {
+	int step1;
+	std::string step2;
+
+	step1 = 1;
+	step2 = "2";
+
+	Expect( "step 1", 1, step1 );
+	Expect( "step 2", "2", step2 );
+
+	bool keepGoing = true;
+	bool failStep = false;
+
+	Expect( "step 3", true, keepGoing );
+	Expect( "step 4", true, failStep ); // Seattle Cattle
 }
 
 // Mult():
@@ -147,16 +165,29 @@ uint mult( uint m, uint n ){
 	return m + mult( m, n );
 }
 
+// badMult():
+// For demonstration purposes!
+uint badMult( uint x, uint y ){
+	return 0 * y;
+}
+
+// Table testing:
+// These fit well into a "table" pattern - structs with fields for:
+// name of test case, expected function output, funtion inputs
+// It's a bit of effort to get the first test case set up, but after that,
+// it's incredibly easy to come up with more cases. More cases = better test.
+
 // Mulitply test cases
 void mult_test() {
-	struct testObj {
+	// Here, the results are known, so we put them in the testObject struct
+	struct testObject {
 		std::string name;
 		uint m;
 		uint n;
 		uint result;
 	};
 
-	testObj table[] = {
+	testObject table[] = {
 		{	.name = "five times five",
 			.m = 5,
 			.n = 5,
@@ -172,118 +203,59 @@ void mult_test() {
 			.n = 5,
 			.result = 0,
 		},
-		{	.name = "fib-complex",
-			.m = fib( 35 ),
-			.n = 1,
-			.result = 9227465,
-		},
-/*		{	.name = "fib-complex crash",
-			.m = 0,
-			.n = fib( 35 ),
-			.result = 0,
-		},
-*/	};
+};
 
 	for( auto t : table ){
 		Expect( t.name, t.result, mult( t.m, t.n ));
 	}
 }
 
-// badMult():
-// For demonstration purposes!
-uint badMult( uint x, uint y ){
-	return 0 * y;
+uint remainder( uint dividend, uint divisor ){
+	return dividend - divisor * ( dividend / divisor );
 }
 
-// Fibonacci numbers
-// (See also: Lucas numbers)
-uint fib( uint n ){
-	if( n == 0 || n == 1 ){
-		return n;
-	}
-
-	return fib( n - 1 ) + fib( n - 2 );
-}
-
-// Fibonacci test cases
-void fib_test() {
+void remainder_test() {
+	// Here, rather than using a result field, we'll test against our bff:
+	// the % 'mod' operator
 	struct testObject {
 		std::string name;
-		int n;
-		int result;
+		uint dividend;
+		uint divisor;
 	};
 
 	testObject table[] = {
-		{	.name = "zero",
-			.n = 0,
-			.result = 0,
+		{	.name = "5 / 4",
+			.dividend = 5,
+			.divisor = 4,
 		},
-		{	.name = "one",
-			.n = 1,
-			.result = 1,
+		{	.name = "337 / 2098",
+			.dividend = 337,
+			.divisor = 2098,
 		},
-		{	.name = "ten",
-			.n = 10,
-			.result = 55,
+		{	.name = "some hex numbers",
+			.dividend = 0x23092430,
+			.divisor = 0x93209148,
 		},
-		{	.name = "long execution",
-			.n = 40,
-			.result = 102334155,
-		},
-/*		{	.name = "long execution fail",
-			.n = 42,
-			.result = 1,
-		},
-*/	};
-
-	for( auto t : table ){
-		Expect( t.name, t.result, fib( t.n ));
-	}
-
-	return;
-}
-
-// Factorial
-uint fact( uint n ){
-	if( n == 0 ) return 1;
-
-	return n * fact( n - 1 );
-}
-
-// Factorial test cases
-void fact_test() {
-	struct testObject {
-		std::string name;
-		int n;
-		int result;
 	};
 
-	testObject table[] = {
-		{	.name = "zero",
-			.n = 0,
-			.result = 1,
-		},
-		{	.name = "five",
-			.n = 5,
-			.result = 120,
-		},
-		{	.name = "big number",
-			.n = 30,
-			.result = 1409286144,
-		},
-/*		{	.name = "example of test being wrong",
-			.n = 6,
-			.result = 270,
-		},
-		{	.name = "again",
-			.n = 7,
-			.result = 720,
-		},
-*/	};
-
 	for( auto t : table ){
-		Expect( t.name, t.result, fact( t.n ));
+		// see where % shows up?
+		Expect( t.name, t.dividend % t.divisor, remainder( t.dividend, t.divisor ));
 	}
+}
 
-	return;
+uint powersOfTwo( uint exponent ){
+	return 1 << exponent;
+}
+
+void powersOfTwo_test() {
+	// There's no reason to feel bound by tables.
+	// For this test, it makes sense to put an Expect() out some loop logic.
+	// Testing can really an opportunity to be creative - at some point something
+	// has to fit in an Expect(), but beyond that, have at it!
+
+	for( int i = 0; i < 1000; ++i ){ // Moose.
+		Expect( "case " + std::to_string( i ), pow( 2, i ), powersOfTwo( i ));
+		if( !::passed ) break;
+	}
 }
