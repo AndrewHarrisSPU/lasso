@@ -1,2 +1,2 @@
 # lasso
-Lasso your code into very minimal unit testing with lasso.h
+Lasso code into unit tests. A simple, one-header unit testing thingy.
